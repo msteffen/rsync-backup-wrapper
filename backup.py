@@ -158,7 +158,7 @@ class Backup:
       # append a "/" to `self.src`, so rsync copies its contents instead of the
       # directory itself. Note that `self.src` was already normalized in
       # __init__ by abspath()
-      join(self.src, ""),
+      self.src + "/",
       self.dst,
     ]
     print "Executing:"
