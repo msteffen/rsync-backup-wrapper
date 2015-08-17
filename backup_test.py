@@ -16,7 +16,8 @@ class TestBackup(unittest.TestCase):
 
   def setUp(self):
     self.start_dir = os.getcwd()
-    self.tmpd = check_output(["mktemp", "-d", "./tmp.rsync_test.XXXXXXXXX"]).strip()
+    self.tmpd = \
+        check_output(["mktemp", "-d", "./tmp.rsync_test.XXXXXXXXX"]).strip()
     os.chdir(self.tmpd);
 
   def tearDown(self):
@@ -78,9 +79,9 @@ class TestBackup(unittest.TestCase):
 
   def test_existing_backup(self):
     """
-      Runs the backup script, using FromBackupDrive, against a simulated previous backup.
-      The inode values of the created files are inspected to make sure that unchanged
-      files are linked instead of copied.
+      Runs the backup script, using FromBackupDrive, against a simulated
+      previous backup. The inode values of the created files are inspected to
+      make sure that unchanged files are linked instead of copied.
     """
     # These deliberately have spaces to make sure rsync can handle them.
     # Rsync does additional processing of arguments and needs spaces to be
