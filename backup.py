@@ -8,7 +8,6 @@ import subprocess
 from sys import stdin
 
 def main():
-  # Establish backup locations
   arg_parser = argparse.ArgumentParser(
   description="Efficiently backup a directory tree using rsync.",
   epilog="""Examples:
