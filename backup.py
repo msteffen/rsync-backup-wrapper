@@ -8,6 +8,7 @@ import subprocess
 from sys import stdin
 
 def main():
+  # Parse flags (which are used to initialize a Backup instance)
   arg_parser = argparse.ArgumentParser(
   description="Efficiently backup a directory tree using rsync.",
   epilog="""Examples:
@@ -38,7 +39,7 @@ def main():
   assert not args.backup_drive or not args.dst
   assert not args.backup_drive or not args.prev_backup
 
-  # Run backup
+  # Run backup using flag values
   if args.backup_drive:
     backup = Backup.FromBackupDrive(args.backup_drive)
   else:
