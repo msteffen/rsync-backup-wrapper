@@ -29,8 +29,8 @@ def main():
       "receive the backup")
   arg_parser.add_argument('--prev_backup', type=str, help="A directory used "
       "for a previous backup. To save space, files that haven't changed since "
-      "the previous backup are hardlinked from --dst, instead of copied to "
-      "--dst")
+      "this backup was taken are hardlinked here from --dst, instead of "
+      "copied")
   args = arg_parser.parse_args()
 
   # Validate flag values
