@@ -117,8 +117,8 @@ class Backup:
 
   def backup_with_rsync(self, dry_run=False):
     """
-      Backup the subtree under `self.src` to `self.dst`, linking against files in
-      `self.prev_backup` if they're unchanged (i.e. if
+      Backup the subtree under `self.src` to `self.dst`, linking against files
+      in `self.prev_backup` if they're unchanged (i.e. if
       [self.src/.../file] == [prev_backup/.../file]).
 
       If `self.prev_backup` is unset, don't do any linking
