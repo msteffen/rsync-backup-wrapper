@@ -88,20 +88,15 @@ class TestBackup(unittest.TestCase):
     os.mkdir("source dir")
     os.mkdir("01-Jan-2000")
 
-    # Populate source dir contents (file name indicates relationship between
-    # source and old dest)
-    dirs = ["same contents", "different contents", "source only"]
-    contents = ["SAME\n", "source dir\n", "source dir\n"]
-    for i in range(3):
-      open(join("source dir", dirs[i]), "w").writelines([contents[i]] * 3)
+    # Populate fake file contents
+    open("source dir/same contents", "w").writelines(["SAME\n"] * 3)
+    open("source dir/diff contents", "w").writelines(["source dir\n"] * 3)
+    open("source dir/source only", "w").writelines(["source dir\n"] * 3)
     
-    # Populate simulated previous backup
-    dirs = ["same contents", "different contents", "old dest only"]
-    contents = ["SAME\n", "old dest only\n", "old dest only\n"]
-    for i in range(3):
-      open(join("01-Jan-2000", dirs[i]), "w").writelines([contents[i]] * 3)
-    
-    # Run backup
+    open("01-Jan-2000/same contents", "w").writelines(["SAME" + "\n"] * 3)
+    open("01-Jan-2000/diff contents", "w").writelines(["old dir" + "\n"] * 3)
+    open("01-Jan-2000/old dest only", "w").writelines(["old dir" + "\n"] * 3)
+
     b = Backup.FromBackupDrive(src="source dir", drive=".")
     b.backup_with_rsync()
 
@@ -115,7 +110,7 @@ class TestBackup(unittest.TestCase):
     # Check contents of backup directory
     dirs = os.listdir(".")
     self.assertEqual(set(dirs),
-        set(["same contents", "different contents", "source only",
+        set(["same contents", "diff contents", "source only",
              "BACKUP_DONE", "rsync_backup.log"]))
 
     # Make sure rsync linked files whose contents didn't change from source to
@@ -125,11 +120,11 @@ class TestBackup(unittest.TestCase):
         os.stat("../01-Jan-2000/same contents").st_ino)
     # Make sure files that *did* change are copies from source
     self.assertEqual(
-        open("different contents", "r").readlines(),
-        open("../source dir/different contents", "r").readlines())
+        open("diff contents", "r").readlines(),
+        open("../source dir/diff contents", "r").readlines())
     self.assertEqual(
-        open("different contents", "r").readlines(),
-        open("../source dir/different contents", "r").readlines())
+        open("diff contents", "r").readlines(),
+        open("../source dir/diff contents", "r").readlines())
 
 if __name__ == "__main__":
   unittest.main()
