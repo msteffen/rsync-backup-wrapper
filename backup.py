@@ -60,7 +60,7 @@ class Backup:
   # NOTE: if this is ever changed, all existing backups will have to be renamed
   # or else this class won't be able to find the most recent backup in a
   # directory
-  _DATE_FORMAT = "%m-%b-%Y"
+  _DATE_FORMAT = "%d-%b-%Y"
   _LOG_FILE = "rsync_backup.log"
   _DONE_FILE = "BACKUP_DONE"
 

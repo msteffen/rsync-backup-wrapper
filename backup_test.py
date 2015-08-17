@@ -86,16 +86,16 @@ class TestBackup(unittest.TestCase):
     # Rsync does additional processing of arguments and needs spaces to be
     # escaped.
     os.mkdir("source dir")
-    os.mkdir("01-Jan-2000")
+    os.mkdir("30-Jan-2000")
 
     # Populate fake file contents
     open("source dir/same contents", "w").writelines(["SAME\n"] * 3)
     open("source dir/diff contents", "w").writelines(["source dir\n"] * 3)
     open("source dir/source only", "w").writelines(["source dir\n"] * 3)
     
-    open("01-Jan-2000/same contents", "w").writelines(["SAME" + "\n"] * 3)
-    open("01-Jan-2000/diff contents", "w").writelines(["old dir" + "\n"] * 3)
-    open("01-Jan-2000/old dest only", "w").writelines(["old dir" + "\n"] * 3)
+    open("30-Jan-2000/same contents", "w").writelines(["SAME" + "\n"] * 3)
+    open("30-Jan-2000/diff contents", "w").writelines(["old dir" + "\n"] * 3)
+    open("30-Jan-2000/old dest only", "w").writelines(["old dir" + "\n"] * 3)
 
     b = Backup.FromBackupDrive(src="source dir", drive=".")
     b.backup_with_rsync()
@@ -104,7 +104,7 @@ class TestBackup(unittest.TestCase):
     self.assertEqual(len(os.listdir(".")), 3)
     # cd to backup dir, and inspect files there
     for d in os.listdir("."):
-      if d in ["source dir", "01-Jan-2000"]: continue
+      if d in ["source dir", "30-Jan-2000"]: continue
       os.chdir(d)
 
     # Check contents of backup directory
@@ -117,7 +117,7 @@ class TestBackup(unittest.TestCase):
     # old_dest (by comparing inode numbers)
     self.assertEqual(
         os.stat("same contents").st_ino,
-        os.stat("../01-Jan-2000/same contents").st_ino)
+        os.stat("../30-Jan-2000/same contents").st_ino)
     # Make sure files that *did* change are copies from source
     self.assertEqual(
         open("diff contents", "r").readlines(),
