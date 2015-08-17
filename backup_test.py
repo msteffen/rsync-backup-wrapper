@@ -9,7 +9,7 @@ from subprocess import *
 
 class TestBackup(unittest.TestCase):
   """
-    This isn't really a unit test, (it creates directories runs the whole
+    This isn't really a unit test, (it creates directories, runs the whole
     script, and the inspects the files on disk) but the whole thing is just
     an rsync wrapper anyway.
   """
