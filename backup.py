@@ -35,9 +35,15 @@ def main():
 
   # Validate flag values
   assert args.src, "Must specify --src. Run `./backup.py --help` for usage info"
-  assert args.backup_drive or args.dst
-  assert not args.backup_drive or not args.dst
-  assert not args.backup_drive or not args.prev_backup
+  assert args.backup_drive or args.dst, \
+      "Must specify exactly one of --dst or --backup_drive. Run " \
+      "`./backup.py --help` for usage info"
+  assert not args.backup_drive or not args.dst, \
+      "Must specify exactly one of --dst or --backup_drive. Run " \
+      "`./backup.py --help` for usage info"
+  assert not args.backup_drive or not args.prev_backup, \
+      "Must specify at most one of --prev_backup or --backup_drive. Run " \
+      "`./backup.py --help` for usage info"
 
   # Run backup using flag values
   if args.backup_drive:
