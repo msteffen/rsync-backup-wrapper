@@ -10,12 +10,12 @@ from sys import stdin
 def main():
   # Parse flags (which are used to initialize a Backup instance)
   arg_parser = argparse.ArgumentParser(
-  description="Efficiently backup a directory tree using rsync.",
-  epilog="""Examples:
-  ./backup.py --src=/Users/msteffen --backup_drive="/Volumes/Seagate Backup Plus Drive/Macbook/"
-  ./backup.py --src=/home/mjs/sensitive --dst=/net/backups/today --prev_backup=/net/backups/6_months_ago
-  """,
-  formatter_class=argparse.RawTextHelpFormatter)
+      description="Efficiently backup a directory tree using rsync.",
+      epilog="""Examples:
+    ./backup.py --src=/Users/msteffen --backup_drive="/Volumes/Seagate Backup Plus Drive/Macbook/"
+    ./backup.py --src=/home/mjs/sensitive --dst=/net/backups/today --prev_backup=/net/backups/6_months_ago
+      """,
+      formatter_class=argparse.RawTextHelpFormatter)
 
   arg_parser.add_argument('--src', type=str, help="The directory to be backed "
       "up")
