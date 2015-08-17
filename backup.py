@@ -87,8 +87,8 @@ class Backup:
   @staticmethod
   def FromBackupDrive(src, drive):
     """
-      Initialize and return a Backup object from a directory containing previous
-      backups created by this script
+      Initialize and return a Backup object from a directory containing
+      previous backups created by this script
 
       Keyword arguments:
       drive -- a global path to a directory where an external backup drive has
