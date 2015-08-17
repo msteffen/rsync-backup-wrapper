@@ -88,19 +88,20 @@ class TestBackup(unittest.TestCase):
     os.mkdir("source dir")
     os.mkdir("01-Jan-2000")
 
-    ### Populate fake file contents
-    # populate source dir contents (file name indicates relationship between
-    # source and old dest
+    # Populate source dir contents (file name indicates relationship between
+    # source and old dest)
     dirs = ["same contents", "different contents", "source only"]
     contents = ["SAME\n", "source dir\n", "source dir\n"]
     for i in range(3):
       open(join("source dir", dirs[i]), "w").writelines([contents[i]] * 3)
-    # populate previous backup
+    
+    # Populate simulated previous backup
     dirs = ["same contents", "different contents", "old dest only"]
     contents = ["SAME\n", "old dest only\n", "old dest only\n"]
     for i in range(3):
       open(join("01-Jan-2000", dirs[i]), "w").writelines([contents[i]] * 3)
-
+    
+    # Run backup
     b = Backup.FromBackupDrive(src="source dir", drive=".")
     b.backup_with_rsync()
 
