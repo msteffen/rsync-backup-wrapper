@@ -49,6 +49,35 @@ class TestBackup(unittest.TestCase):
       self.assertEqual(open(join("source dir", f), "r").readlines(),
           open(join("backup dir", f), "r").readlines())
 
+  def test_new_backup_to_drive(self):
+    """
+      Attemptes to successfully run the backup script once, end-to-end.
+
+      Note that the test files all have spaces in the names (since rsync has
+      given me issues with that)
+    """
+    os.mkdir("source dir")
+
+    # Populate fake file contents
+    for f in ["file one", "file two", "file three"]:
+      open(join("source dir", f), "w").writelines([f + " data\n"] * 3)
+    
+    b = Backup.FromBackupDrive(src="source dir", drive=".")
+    b.backup_with_rsync()
+
+    ### Inspect output
+    # Find backup directory
+    for d in os.listdir("."):
+      if d != "source dir": backup_dir = d
+
+    self.assertEqual(set(os.listdir(backup_dir)),
+        set(["file one", "file two", "file three",
+             "BACKUP_DONE", "rsync_backup.log"]))
+    # Check contents match
+    for f in ["file one", "file two", "file three"]:
+      self.assertEqual(open(join("source dir", f), "r").readlines(),
+          open(join(backup_dir, f), "r").readlines())
+
   def test_existing_backup(self):
     """
       Attemptes to successfully run the backup script once, end-to-end.
@@ -70,15 +99,13 @@ class TestBackup(unittest.TestCase):
     open(join("01-Jan-2000", "different contents"), "w").writelines(["old dest dir" + "\n"]*3)
     open(join("01-Jan-2000", "old dest only"),      "w").writelines(["old dest dir" + "\n"]*3)
 
-    b = Backup.FromBackupDrive(src="source dir", drive="./")
+    b = Backup.FromBackupDrive(src="source dir", drive=".")
     b.backup_with_rsync()
 
     ### Inspect output
-    dirs = os.listdir(".")
-    self.assertEqual(len(dirs), 3)
-
+    self.assertEqual(len(os.listdir(".")), 3)
     # cd to backup dir, and inspect files there
-    for d in dirs:
+    for d in os.listdir("."):
       if d in ["source dir", "01-Jan-2000"]: continue
       os.chdir(d)
 
