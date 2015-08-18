@@ -46,7 +46,7 @@ def main():
 
   # Run backup using flag values
   if args.backup_drive:
-    backup = Backup.FromBackupDrive(args.backup_drive)
+    backup = Backup.FromBackupDrive(args.src, args.backup_drive)
   else:
     backup = Backup(args.src, args.dst, args.prev_backup)
   
