@@ -73,8 +73,7 @@ def main():
 
   # Create Backup object
   if args.backup_drive:
-    backup = Backup.FromBackupDrive(
-        backup_drive=args.backup_drive, **backup_args)
+    backup = Backup.FromBackupDrive(drive=args.backup_drive, **backup_args)
   else:
     if args.prev_backup: backup_args["prev_backup"] = args.prev_backup
     backup = Backup(dst=args.dst, **backup_args)
