@@ -49,7 +49,6 @@ def main():
   print "Executing:"
   print " ".join(cmd)
   backup.run_rsync_cmd()
-  open(join(backup.destination(), "BACKUP_DONE"), "w")  # just $(touch BACKUP_DONE)
   print("\033[1;32mDONE!\033[0m")
 
 if __name__ == "__main__":

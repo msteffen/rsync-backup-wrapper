@@ -7,32 +7,11 @@ import os
 from os.path import isdir, isfile, join, exists
 import subprocess as proc
 
-def is_backup_same(source, backup):
+def put(output_file, lines):
   """
-    Utility method for testing whether source and backup are
-    recursively equal.
+    Convenience function to succinctly write "lines" to "output_file", for
+    populating test files
   """
-  if (isdir(source), isfile(source)) != (isdir(backup), isfile(backup)):
-    return False
-  if isdir(source):
-    existing_files = set(os.listdir(source))
-    if set(os.listdir(backup)) \
-        !=  (existing_files | set(["rsync_backup.log"])):
-      return False
-    # recursively compare subfiles and subdirectories
-    is_equal = True
-    for f in existing_files:
-      is_equal &= is_backup_same(join(source, f), join(backup, f))
-    return is_equal
-  elif isfile(source):
-    with open(source, "r") as src, open(backup, "r") as dst:
-      return src.readlines() == dst.readlines()
-  else:
-    raise ValueError("Source file {} is neither a file nor a directory. Not "
-        + "sure how to compare...".format(source))
-
-def put(lines, output_file):
-  """ Convenience function to succinctly write "lines" to "output_file" """
   with open(output_file, "w") as outf:
     outf.writelines(lines)
 
@@ -42,8 +21,11 @@ class TestBackup(unittest.TestCase):
     script, and the inspects the files on disk) but the whole thing is just
     an rsync wrapper anyway.
   """
+  _test_files = ["regular_file", "~chars file", ".hidden file", "-flag file"]
+  _test_dirs = ["regular_dir", "~chars dir", ".hidden dir", "-flag dir" ]
 
   def setUp(self):
+    # Create tmp dir for the test to take place in
     self.start_dir = os.getcwd()
     self.tmpd = proc.check_output(
         ["mktemp", "-d", "./tmp.rsync_test.XXXXXXXXX"]).strip()
@@ -51,7 +33,49 @@ class TestBackup(unittest.TestCase):
 
   def tearDown(self):
     os.chdir(self.start_dir)
-    proc.call(["rm", "-r", self.tmpd])
+    proc.check_output(["rm", "-r", self.tmpd])
+
+  def createDefaultSourceDir(self, root_dir):
+    """
+      Utility method to create a source dir with lots of test files and
+      directories (including many with weird names)
+    """
+    os.mkdir(root_dir)
+    for d in self._test_dirs:
+      os.mkdir(join(root_dir, d))
+      for f in self._test_files:
+        put(join(root_dir, d, f), [join(d,f) + " data\n"] * 3)
+    for f in self._test_files:
+      put(join(root_dir, f), [f + " data\n"] * 3)
+
+  def assertBackupSame(self, source, backup, extra_files=[]):
+    """
+      Utility method for testing whether source and backup are
+      recursively equal.
+    """
+    self.assertEqual(
+        (isdir(source), isfile(source)),
+        (isdir(backup), isfile(backup)),
+        "different file types. source: {}, dst: {}".format(source, backup))
+    if isdir(source):
+      # Make sure contents of directories are the same
+      existing_files = set(os.listdir(source))
+      self.assertEqual(
+          set(os.listdir(backup)),
+          existing_files | set(extra_files),
+          "Dir contents not equal. source: {}:\n{}\ndst: {}:\n{}"
+              .format(source, existing_files | set(extra_files),
+                      backup, set(os.listdir(backup))))
+      # recursively compare subfiles and subdirectories
+      for f in existing_files:
+        self.assertBackupSame(join(source, f), join(backup, f), [])
+    elif isfile(source):
+      with open(source, "r") as src, open(backup, "r") as dst:
+        self.assertEqual(src.readlines(), dst.readlines(),
+            "file contents not equal. source: {}, dst: {}".format(src, dst))
+    else:
+      raise ValueError("Source file {} is neither a file nor a directory. Not "
+          + "sure how to compare...".format(source))
 
   def test_new_backup(self):
     """
@@ -60,35 +84,26 @@ class TestBackup(unittest.TestCase):
       Note that the test files all have spaces in the names (since rsync has
       given me issues with that)
     """
-    os.mkdir("source dir")
-
-    # Populate fake file contents (all files have distinct contents)
-    for f in ["file one", "file two", "file three"]:
-      put([f + " data\n"] * 3, join("source dir", f))
-
+    self.createDefaultSourceDir("source dir")
     b = Backup(src="source dir", dst="backup dir")
-    b.run_rsync_cmd()
-
-    ### Inspect output
-    is_backup_same("source dir", "backup dir")
+    b.run_rsync_cmds()
+    # Inspect output
+    self.assertBackupSame("source dir", "backup dir",
+      extra_files = ["rsync_backup.log", Backup._DONE_FILE])
 
   def test_new_backup_to_drive(self):
     """
       Runs the backup script, using FromBackupDrive (i.e. --backup_drive),
       but without any previous backups present in the `drive` directory.
     """
-    # Create source dir
-    os.mkdir("source dir")
-    for f in ["file one", "file two", "file three"]:
-      put([f + " data\n"] * 3, join("source dir", f))
-
+    self.createDefaultSourceDir("source dir")
     b = Backup.FromBackupDrive(src="source dir", drive=".")
-    b.run_rsync_cmd()
-
-    ### Inspect output
+    b.run_rsync_cmds()
+    # Inspect output
     for d in os.listdir("."):
       if d != "source dir": backup_dir = d
-    is_backup_same("source dir", backup_dir)
+    self.assertBackupSame("source dir", backup_dir,
+      extra_files = ["rsync_backup.log", Backup._DONE_FILE])
 
   def test_existing_backup(self):
     """
@@ -103,16 +118,16 @@ class TestBackup(unittest.TestCase):
     os.mkdir("30-Jan-2000")
 
     # Populate fake file contents
-    put(["SAME\n"] * 3, "source dir/same contents")
-    put(["source dir\n"] * 3, "source dir/diff contents")
-    put(["source dir\n"] * 3, "source dir/source only")
-    put(["SAME\n"] * 3, "30-Jan-2000/same contents")
-    put(["old dir\n"] * 3, "30-Jan-2000/diff contents")
-    put(["old dir\n"] * 3, "30-Jan-2000/old dest only")
+    put("source dir/same contents", ["SAME\n"] * 3)
+    put("source dir/diff contents", ["source dir\n"] * 3)
+    put("source dir/source only", ["source dir\n"] * 3)
+    put("30-Jan-2000/same contents", ["SAME\n"] * 3)
+    put("30-Jan-2000/diff contents", ["old dir\n"] * 3)
+    put("30-Jan-2000/old dest only", ["old dir\n"] * 3)
 
     # Take backup
     b = Backup.FromBackupDrive(src="source dir", drive=".")
-    b.run_rsync_cmd()
+    b.run_rsync_cmds()
 
     ### Inspect output
     self.assertEqual(len(os.listdir(".")), 3)
@@ -122,7 +137,8 @@ class TestBackup(unittest.TestCase):
       backup_dir = d
 
     # Check contents of backup directory
-    is_backup_same("source dir", backup_dir)
+    self.assertBackupSame("source dir", backup_dir,
+      extra_files = ["rsync_backup.log", Backup._DONE_FILE])
     # Make sure rsync linked files whose contents didn't change from source to
     # old_dest (by comparing inode numbers)
     self.assertEqual(
@@ -138,26 +154,47 @@ class TestBackup(unittest.TestCase):
       since rsync is invoked multiple times, and we want to test that both such
       cases are handled correctly.
     """
-    # Create backup source
-    os.mkdir("source dir")
-    for d in ["dir one", "dir two", "dir three"]:
-      os.mkdir(join("source dir", d))
-      for f in ["inner file one", "inner file two", "inner file three"]:
-        open(join("source dir", d, f), "w").writelines(
-            [join(d,f) + " data\n"] * 3)
-    for f in ["file one", "file two", "file three"]:
-      open(join("source dir", f), "w").writelines([f + " data\n"] * 3)
-    b = Backup(src="source dir", dst="backup dir", backup_targets=[
-      "dir one", "file one",  "dir two", "file two", "..."])
-    b.run_rsync_cmd()
+    self.createDefaultSourceDir("source dir")
+    b = Backup(src="source dir", dst="backup dir", backup_order=[
+      self._test_dirs[0], self._test_files[0],
+      self._test_dirs[1], self._test_files[1],
+      "..."])
+    b.run_rsync_cmds()
     ### Inspect output
-    is_backup_same("source dir", "backup dir")
+    self.assertBackupSame("source dir", "backup dir",
+      extra_files = ["rsync_backup.log", Backup._DONE_FILE])
 
-    # Same test, but now it needs to work with a previous backup
-    # os.mkdir("prev backup dir")
-    # os.mkdir("prev backup dir/dir one")
-    # open(
+  def test_ordered_backup_with_prev(self):
+    """ Similar to test_existing_backup, but tests backup_order option """
+    os.mkdir("source dir")
+    os.mkdir("30-Jan-2000")
+    put("source dir/same contents", ["SAME\n"] * 3)
+    put("source dir/diff contents", ["source dir\n"] * 3)
+    put("source dir/source only", ["source dir\n"] * 3)
+    put("30-Jan-2000/same contents", ["SAME\n"] * 3)
+    put("30-Jan-2000/diff contents", ["old dir\n"] * 3)
+    put("30-Jan-2000/old dest only", ["old dir\n"] * 3)
 
+    # Take backup
+    b = Backup.FromBackupDrive(src="source dir", drive=".",
+                               backup_order=["diff contents", "..."])
+    b.run_rsync_cmds()
+
+    ### Inspect output
+    self.assertEqual(len(os.listdir(".")), 3)
+    # cd to backup dir, and inspect files there
+    for d in os.listdir("."):
+      if d in ["source dir", "30-Jan-2000"]: continue
+      backup_dir = d
+
+    # Check contents of backup directory
+    self.assertBackupSame("source dir", backup_dir,
+      extra_files = ["rsync_backup.log", Backup._DONE_FILE])
+    # Make sure rsync linked files whose contents didn't change from source to
+    # old_dest (by comparing inode numbers)
+    self.assertEqual(
+        os.stat(join(backup_dir, "same contents")).st_ino,
+        os.stat("30-Jan-2000/same contents").st_ino)
 
   def test_partial_backup(self):
     """
@@ -166,12 +203,24 @@ class TestBackup(unittest.TestCase):
 
       Test both with and without prev_backup specified
     """
+    self.createDefaultSourceDir("source dir")
+    to_back_up = [self._test_dirs[0], self._test_files[0],
+                  self._test_dirs[2], self._test_files[2]]
+    b = Backup(src="source dir", dst="backup dir", backup_order=to_back_up)
+    b.run_rsync_cmds()
+    ### Inspect output
+    for f in to_back_up:
+      self.assertBackupSame(join("source dir", f), join("backup dir", f))
 
-  def test_partial_backup_hidden_files(self):
-    """
-      Runs the backup script, and only backup a few files/directories in the
-      source directory. Make sure those were copied
-    """
+    # Re-run test with a different subset
+    proc.check_output(["rm", "-r", "backup dir"])
+    to_back_up = [self._test_dirs[1], self._test_files[1],
+                  self._test_dirs[3], self._test_files[3]]
+    b = Backup(src="source dir", dst="backup dir", backup_order=to_back_up)
+    b.run_rsync_cmds()
+    ### Inspect output
+    for f in to_back_up:
+      self.assertBackupSame(join("source dir", f), join("backup dir", f))
 
 if __name__ == "__main__":
   unittest.main()
