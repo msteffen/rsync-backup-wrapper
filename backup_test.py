@@ -156,6 +156,7 @@ class TestBackup(unittest.TestCase):
     """
     self.createDefaultSourceDir("source dir")
     b = Backup(src="source dir", dst="backup dir", backup_order=[
+      join(self._test_dirs[0], self._test_files[0]),
       self._test_dirs[0], self._test_files[0],
       self._test_dirs[1], self._test_files[1],
       "..."])

@@ -64,14 +64,17 @@ class Backup:
     src = abspath(src)
     dst = abspath(dst)
     prev_backup = abspath(prev_backup) if prev_backup else None
+    # TODO fix shell pattern expansion
     clean_backup_order = []
     for i in range(len(backup_order)):
       f = backup_order[i]
+      assert type(f) == str, "backup_order must be a list of strings"
       if f == "...":
         assert i == (len(backup_order) - 1), \
             "\"...\" must be last in backup order"
         clean_backup_order.append(f)
       else:
+        f = normpath(f)
         assert exists(join(src, f)), \
             "file {} in backup order does not exist".format(join(src, f))
         clean_backup_order.append(f)
@@ -140,9 +143,6 @@ class Backup:
   def destination(self):
     return self.dst
 
-# TODO will this include hidden files? Test that case. must be the same as running rsync on the parent
-# TODO Does rsync have an option to only copy certain children?
-
   def rsync_cmds(self, dry_run=False):
     """
       Backup the subtree under `self.src` to `self.dst`, linking against files
@@ -163,7 +163,7 @@ class Backup:
         if f == "...":
           excluded_files = visited
         elif v.startswith(f):
-          excluded_files.append(visited) # Already backed up -- skip for now
+          excluded_files.append(v) # Already backed up -- skip for now
         elif f.startswith(v):
           continue # Already backed up parent -- skip this
         else:
